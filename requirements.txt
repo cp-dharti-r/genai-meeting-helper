@@ -1,0 +1,17 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+httpx==0.27.2
+python-dotenv==1.0.1
+tenacity==9.0.0
+# Optional: Vector store dependencies (requires Python 3.11 or 3.12)
+# For Python 3.13, these will be gracefully disabled
+# sentence-transformers>=3.0.0  # Requires torch, not available for Python 3.13 yet
+# faiss-cpu>=1.9.0  # May not be available for Python 3.13
+scikit-learn>=1.5.0
+email-validator==2.2.0
+icalendar==6.0.1
+apscheduler==3.10.4
+loguru==0.7.2

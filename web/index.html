@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GenAI Meeting Helper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      }
+
+      input,
+      textarea {
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+        width: 100%;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        padding: 0.75rem 1.5rem;
+        margin: 0.25rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #667eea;
+        color: white;
+      }
+
+      button:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button.secondary {
+        background: #6c757d;
+      }
+
+      button.secondary:hover {
+        background: #5a6268;
+      }
+
+      button.success {
+        background: #28a745;
+      }
+
+      button.success:hover {
+        background: #218838;
+      }
+
+      button.danger {
+        background: #dc3545;
+      }
+
+      button.danger:hover {
+        background: #c82333;
+      }
+
+      .row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .col {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+
+      .card h2 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+      }
+
+      .card h3 {
+        margin-top: 0;
+        color: #666;
+        font-size: 1rem;
+      }
+
+      .status-message {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+        display: none;
+      }
+
+      .status-message.success {
+        background: #d4edda;
+        border: 2px solid #28a745;
+        color: #155724;
+        display: block;
+      }
+
+      .status-message.error {
+        background: #f8d7da;
+        border: 2px solid #dc3545;
+        color: #721c24;
+        display: block;
+      }
+
+      .status-message.info {
+        background: #d1ecf1;
+        border: 2px solid #17a2b8;
+        color: #0c5460;
+        display: block;
+      }
+
+      .meeting-item {
+        border: 2px solid #e0e0e0;
+        padding: 1rem;
+        margin: 0.75rem 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+      }
+
+      .meeting-item:hover {
+        border-color: #667eea;
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+      }
+
+      .meeting-item.active {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-color: #2196F3;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+        margin-left: 0.5rem;
+      }
+
+      .status-scheduled { 
+        background-color: #fff3cd; 
+        color: #856404; 
+      }
+      
+      .status-live { 
+        background-color: #d4edda; 
+        color: #155724; 
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      
+      .status-ended { 
+        background-color: #f8d7da; 
+        color: #721c24; 
+      }
+
+      .summary-item {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 6px;
+      }
+
+      .summary-item.final {
+        border-left-color: #28a745;
+        background: #f0f9f4;
+      }
+
+      .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .summary-time {
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      .rag-answer {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 6px;
+      }
+
+      .rag-score {
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+
+      small {
+        color: #666;
+        display: block;
+        margin-top: 0.5rem;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #999;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>🤝 GenAI Meeting Helper</h1>
+
+      <div class="card">
+        <h2>📋 All Meetings</h2>
+        <div style="margin-bottom: 1rem;">
+          <button onclick="loadMeetings()">🔄 Refresh List</button>
+          <button class="secondary" onclick="loadMeetings(true)">⏱️ Auto-refresh (10s)</button>
+        </div>
+        <div id="meetingsList"></div>
+      </div>
+
+      <div class="card">
+        <h2>➕ Create Meeting</h2>
+        <input id="title" placeholder="Meeting Title *" required />
+        <textarea id="description" placeholder="Description (optional)" rows="3"></textarea>
+        <textarea
+          id="participants"
+          placeholder="Participants (name,email per line)&#10;Example:&#10;Alice,alice@example.com&#10;Bob,bob@example.com"
+          rows="4"
+        ></textarea>
+        <small>Format: name,email (one per line). Empty lines are ignored.</small>
+        <button class="success" onclick="createMeeting()">✨ Create Meeting</button>
+        <div id="createOut" class="status-message"></div>
+      </div>
+
+      <div class="card">
+        <h2>🎮 Meeting Controls</h2>
+        <input id="meetingId" placeholder="Meeting ID (or select from list above)" />
+        <div class="row" style="margin-top: 1rem;">
+          <div class="col">
+            <h3>▶️ Start</h3>
+            <button class="success" onclick="startMeeting()">Start Meeting</button>
+          </div>
+          <div class="col">
+            <h3>👤 Join / Heartbeat</h3>
+            <input id="email" placeholder="Your email" type="email" />
+            <button onclick="joinMeeting()">Join</button>
+            <button class="secondary" onclick="heartbeat()">Heartbeat</button>
+          </div>
+          <div class="col">
+            <h3>⏹️ End</h3>
+            <button class="danger" onclick="endMeeting()">End Meeting</button>
+          </div>
+        </div>
+        <div id="ctrlOut" class="status-message"></div>
+      </div>
+
+      <div class="card">
+        <h2>📅 Send Calendar Invite</h2>
+        <input id="start" placeholder="Start (ISO format: 2025-11-06T10:00:00Z)" />
+        <input id="end" placeholder="End (ISO format: 2025-11-06T11:00:00Z)" />
+        <button onclick="sendInvite()">📧 Send Invite</button>
+        <div id="inviteOut" class="status-message"></div>
+      </div>
+
+      <div class="card">
+        <h2>📝 Add Meeting Event</h2>
+        <textarea
+          id="eventContent"
+          placeholder="What was discussed or said in the meeting..."
+          rows="4"
+        ></textarea>
+        <input id="author" placeholder="Author/Speaker (optional)" />
+        <button onclick="ingestEvent()">➕ Add Event</button>
+        <div id="eventOut" class="status-message"></div>
+      </div>
+
+      <div class="card">
+        <h2>📊 Meeting Summaries</h2>
+        <div style="margin-bottom: 1rem;">
+          <button onclick="loadSummaries()">🔄 Refresh</button>
+          <button class="secondary" onclick="toggleAutoRefresh()">⏱️ Toggle Auto-refresh</button>
+        </div>
+        <div id="summariesOut"></div>
+      </div>
+
+      <div class="card">
+        <h2>🔍 RAG Query</h2>
+        <input id="question" placeholder="Ask a question about the meeting..." />
+        <button onclick="rag()">💡 Ask</button>
+        <div id="ragOut"></div>
+      </div>
+    </div>
+
+    <script>
+      const API = "http://localhost:8000";
+      let autoRefreshInterval = null;
+      let meetingsRefreshInterval = null;
+      let selectedMeetingId = null;
+
+      function showStatus(elementId, message, type = 'success') {
+        const element = document.getElementById(elementId);
+        element.className = `status-message ${type}`;
+        element.textContent = message;
+        element.style.display = 'block';
+        
+        if (type === 'success') {
+          setTimeout(() => {
+            element.style.display = 'none';
+          }, 5000);
+        }
+      }
+
+      function hideStatus(elementId) {
+        document.getElementById(elementId).style.display = 'none';
+      }
+
+      async function checkServerConnection() {
+        try {
+          const res = await fetch(`${API}/health`);
+          if (res.ok) {
+            console.log("✅ Server connection OK");
+            return true;
+          } else {
+            showConnectionError();
+            return false;
+          }
+        } catch (error) {
+          showConnectionError();
+          return false;
+        }
+      }
+
+      function showConnectionError() {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'background: #ffebee; border: 2px solid #f44336; padding: 1rem; margin: 1rem 0; border-radius: 8px; color: #d32f2f;';
+        errorDiv.innerHTML = `
+          <strong>⚠️ Cannot connect to server!</strong><br>
+          <p>Make sure the server is running:</p>
+          <code style="background: white; padding: 0.5rem; display: block; margin: 0.5rem 0; border-radius: 4px;">
+            uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+          </code>
+          <button onclick="checkServerConnection()" style="margin-top: 0.5rem;">Retry Connection</button>
+        `;
+        document.body.insertBefore(errorDiv, document.body.firstChild);
+      }
+
+      async function loadMeetings(autoRefresh = false) {
+        try {
+          const res = await fetch(`${API}/meetings/`);
+          if (res.ok) {
+            const meetings = await res.json();
+            if (meetings.length === 0) {
+              document.getElementById("meetingsList").innerHTML = '<div class="empty-state">No meetings found. Create one below! 👇</div>';
+              return;
+            }
+            let html = `<h3 style="color: #666;">Total: ${meetings.length} meeting(s)</h3>`;
+            meetings.forEach((meeting) => {
+              const statusClass = `status-${meeting.status}`;
+              const statusLabel = meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1);
+              const created = meeting.created_at ? new Date(meeting.created_at).toLocaleString() : 'N/A';
+              const isActive = selectedMeetingId == meeting.id;
+              html += `
+                <div class="meeting-item ${isActive ? 'active' : ''}" onclick="selectMeeting(${meeting.id})">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1;">
+                      <strong style="font-size: 1.1em;">#${meeting.id}: ${meeting.title}</strong>
+                      <span class="status-badge ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); selectMeeting(${meeting.id})" style="width: auto;">Select</button>
+                  </div>
+                  ${meeting.description ? `<p style="margin: 0.75rem 0; color: #666;">${meeting.description}</p>` : ''}
+                  <div style="font-size: 0.9em; color: #999;">
+                    <div>📅 Created: ${created}</div>
+                    ${meeting.actual_start ? `<div>▶️ Started: ${new Date(meeting.actual_start).toLocaleString()}</div>` : ''}
+                    ${meeting.actual_end ? `<div>⏹️ Ended: ${new Date(meeting.actual_end).toLocaleString()}</div>` : ''}
+                  </div>
+                </div>
+              `;
+            });
+            document.getElementById("meetingsList").innerHTML = html;
+            
+            if (autoRefresh && !meetingsRefreshInterval) {
+              meetingsRefreshInterval = setInterval(() => loadMeetings(false), 10000);
+            }
+          } else {
+            document.getElementById("meetingsList").innerHTML = `<div class="status-message error">Error loading meetings: ${res.status}</div>`;
+          }
+        } catch (error) {
+          document.getElementById("meetingsList").innerHTML = `<div class="status-message error">Error: ${error.message}</div>`;
+        }
+      }
+
+      function selectMeeting(id) {
+        selectedMeetingId = id;
+        document.getElementById("meetingId").value = id;
+        loadMeetings(false);
+        if (autoRefreshInterval) {
+          loadSummaries();
+        }
+      }
+
+      async function createMeeting() {
+        const title = document.getElementById("title").value.trim();
+        if (!title) {
+          showStatus("createOut", "⚠️ Please enter a meeting title", "error");
+          return;
+        }
+
+        const participantsText = document.getElementById("participants").value.trim();
+        const participants = [];
+        
+        if (participantsText) {
+          participantsText.split("\n").forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+            
+            const parts = trimmed.split(",");
+            if (parts.length >= 2) {
+              const name = parts[0].trim();
+              const email = parts.slice(1).join(",").trim();
+              
+              if (name && email && email.includes("@")) {
+                participants.push({ name, email });
+              }
+            } else if (trimmed.includes("@")) {
+              participants.push({ name: trimmed, email: trimmed });
+            }
+          });
+        }
+
+        const payload = {
+          title: title,
+          description: document.getElementById("description").value.trim() || null,
+          participants,
+        };
+
+        try {
+          showStatus("createOut", "⏳ Creating meeting...", "info");
+          const res = await fetch(`${API}/meetings/`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(payload) 
+          });
+          
+          if (!res.ok) {
+            const error = await res.json();
+            showStatus("createOut", `❌ Error: ${error.detail || JSON.stringify(error)}`, "error");
+            return;
+          }
+
+          const result = await res.json();
+          showStatus("createOut", `✅ Meeting created successfully! ID: ${result.id} - ${result.title}`, "success");
+          document.getElementById("title").value = "";
+          document.getElementById("description").value = "";
+          document.getElementById("participants").value = "";
+          loadMeetings(false);
+        } catch (error) {
+          showStatus("createOut", `❌ Network Error: ${error.message}`, "error");
+        }
+      }
+
+      async function startMeeting() {
+        const id = document.getElementById("meetingId").value;
+        if (!id) {
+          showStatus("ctrlOut", "⚠️ Please enter a meeting ID", "error");
+          return;
+        }
+        try {
+          showStatus("ctrlOut", "⏳ Starting meeting...", "info");
+          const res = await fetch(`${API}/meetings/${id}/start`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({}) 
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showStatus("ctrlOut", `✅ Meeting started! Status: ${result.status}`, "success");
+            loadMeetings(false);
+            startAutoRefresh();
+          } else {
+            showStatus("ctrlOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("ctrlOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function joinMeeting() {
+        const id = document.getElementById("meetingId").value;
+        const email = document.getElementById("email").value;
+        if (!id || !email) {
+          showStatus("ctrlOut", "⚠️ Please enter meeting ID and email", "error");
+          return;
+        }
+        try {
+          const res = await fetch(`${API}/meetings/${id}/join`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ email }) 
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showStatus("ctrlOut", `✅ Joined meeting as ${email}`, "success");
+          } else {
+            showStatus("ctrlOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("ctrlOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function heartbeat() {
+        const id = document.getElementById("meetingId").value;
+        const email = document.getElementById("email").value;
+        if (!id || !email) {
+          showStatus("ctrlOut", "⚠️ Please enter meeting ID and email", "error");
+          return;
+        }
+        try {
+          const res = await fetch(`${API}/meetings/${id}/heartbeat`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ email }) 
+          });
+          if (res.ok) {
+            showStatus("ctrlOut", `💓 Heartbeat sent`, "success");
+          } else {
+            const result = await res.json();
+            showStatus("ctrlOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("ctrlOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function endMeeting() {
+        const id = document.getElementById("meetingId").value;
+        if (!id) {
+          showStatus("ctrlOut", "⚠️ Please enter a meeting ID", "error");
+          return;
+        }
+        try {
+          showStatus("ctrlOut", "⏳ Ending meeting and generating final notes...", "info");
+          const res = await fetch(`${API}/meetings/${id}/end`, { method: "POST" });
+          const result = await res.json();
+          if (res.ok) {
+            showStatus("ctrlOut", `✅ Meeting ended! Final notes generated and emailed.`, "success");
+            loadMeetings(false);
+            loadSummaries();
+            stopAutoRefresh();
+          } else {
+            showStatus("ctrlOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("ctrlOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function sendInvite() {
+        const id = document.getElementById("meetingId").value;
+        const start = document.getElementById("start").value;
+        const end = document.getElementById("end").value;
+        if (!id || !start || !end) {
+          showStatus("inviteOut", "⚠️ Please enter meeting ID, start, and end times", "error");
+          return;
+        }
+        try {
+          showStatus("inviteOut", "⏳ Sending calendar invites...", "info");
+          const res = await fetch(`${API}/meetings/${id}/invite`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ start, end }) 
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showStatus("inviteOut", `✅ Calendar invites sent successfully!`, "success");
+          } else {
+            showStatus("inviteOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("inviteOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function ingestEvent() {
+        const meeting_id = document.getElementById("meetingId").value;
+        const content = document.getElementById("eventContent").value;
+        const author = document.getElementById("author").value;
+        if (!meeting_id || !content) {
+          showStatus("eventOut", "⚠️ Please enter meeting ID and event content", "error");
+          return;
+        }
+        try {
+          const res = await fetch(`${API}/events/`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ meeting_id, content, author }) 
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showStatus("eventOut", `✅ Event added successfully!`, "success");
+            document.getElementById("eventContent").value = "";
+            document.getElementById("author").value = "";
+          } else {
+            showStatus("eventOut", `❌ Error: ${result.detail || JSON.stringify(result)}`, "error");
+          }
+        } catch (error) {
+          showStatus("eventOut", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function rag() {
+        const id = document.getElementById("meetingId").value;
+        const question = document.getElementById("question").value;
+        if (!id || !question) {
+          document.getElementById("ragOut").innerHTML = '<div class="status-message error">⚠️ Please enter meeting ID and question</div>';
+          return;
+        }
+        try {
+          document.getElementById("ragOut").innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="loading" style="margin: 0 auto;"></div><p style="margin-top: 1rem;">Searching meeting notes...</p></div>';
+          const res = await fetch(`${API}/meetings/${id}/rag`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ question }) 
+          });
+          
+          if (!res.ok) {
+            const error = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+            document.getElementById("ragOut").innerHTML = `<div class="status-message error">❌ Error: ${error.detail || res.statusText}</div>`;
+            return;
+          }
+
+          const result = await res.json();
+          const answers = result.answers || [];
+          
+          if (answers.length === 0) {
+            document.getElementById("ragOut").innerHTML = `
+              <div class="status-message info">
+                <strong>🔍 No relevant answers found</strong>
+                <p style="margin-top: 0.5rem; font-size: 0.9em;">
+                  This could mean:<br>
+                  • The meeting hasn't been ended yet (no summaries stored)<br>
+                  • Vector store is not available (check server logs)<br>
+                  • No matching content found for your question
+                </p>
+                <p style="margin-top: 0.5rem; font-size: 0.85em; color: #666;">
+                  <strong>Tip:</strong> Make sure to end the meeting first to generate and store the final summary.
+                </p>
+              </div>
+            `;
+          } else {
+            let html = `<h3 style="color: #666; margin-bottom: 1rem;">🔍 Found ${answers.length} relevant result(s)</h3>`;
+            answers.forEach((answer, idx) => {
+              const scorePercent = (answer.score * 100).toFixed(1);
+              const scoreColor = answer.score > 0.7 ? '#28a745' : answer.score > 0.4 ? '#ffc107' : '#6c757d';
+              html += `
+                <div class="rag-answer">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong>Result ${idx + 1}</strong>
+                    <span style="background: ${scoreColor}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
+                      ${scorePercent}% match
+                    </span>
+                  </div>
+                  <p style="margin: 0; line-height: 1.6; white-space: pre-wrap;">${answer.text}</p>
+                </div>
+              `;
+            });
+            document.getElementById("ragOut").innerHTML = html;
+          }
+        } catch (error) {
+          document.getElementById("ragOut").innerHTML = `<div class="status-message error">❌ Network Error: ${error.message}<br><small>Make sure the server is running and accessible.</small></div>`;
+        }
+      }
+
+      async function loadSummaries() {
+        const id = document.getElementById("meetingId").value;
+        if (!id) {
+          document.getElementById("summariesOut").innerHTML = '<div class="status-message info">Please enter or select a meeting ID</div>';
+          return;
+        }
+        try {
+          document.getElementById("summariesOut").innerHTML = '<div class="loading"></div> Loading summaries...';
+          const res = await fetch(`${API}/meetings/${id}/summaries`);
+          if (res.ok) {
+            const data = await res.json();
+            const summaries = data.summaries || [];
+            if (summaries.length === 0) {
+              document.getElementById("summariesOut").innerHTML = `
+                <div class="empty-state">
+                  <p>📭 No summaries yet.</p>
+                  <p style="font-size: 0.9em; margin-top: 0.5rem;">
+                    Summaries are generated automatically:<br>
+                    • Every 5 minutes during <strong>live</strong> meetings<br>
+                    • When you <strong>end</strong> a meeting (final summary)
+                  </p>
+                  <p style="font-size: 0.85em; margin-top: 0.5rem; color: #999;">
+                    Make sure the meeting has been started and events have been added.
+                  </p>
+                </div>
+              `;
+              return;
+            }
+            let html = `<h3 style="color: #666; margin-bottom: 1rem;">📊 ${summaries.length} Summary(ies)</h3>`;
+            summaries.forEach((s) => {
+              const time = new Date(s.window_end).toLocaleString();
+              const startTime = new Date(s.window_start).toLocaleString();
+              const isFinal = s.kind === "final";
+              html += `
+                <div class="summary-item ${isFinal ? 'final' : ''}">
+                  <div class="summary-header">
+                    <strong>${isFinal ? '📄 Final Summary' : '🔄 Rolling Summary'}</strong>
+                    <span class="summary-time">${time}</span>
+                  </div>
+                  <small style="color: #999; display: block; margin-bottom: 0.5rem;">
+                    Period: ${startTime} → ${time}
+                  </small>
+                  <p style="margin-top: 0.5rem; line-height: 1.6; white-space: pre-wrap;">${s.summary_text}</p>
+                </div>
+              `;
+            });
+            document.getElementById("summariesOut").innerHTML = html;
+          } else {
+            const error = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+            document.getElementById("summariesOut").innerHTML = `<div class="status-message error">❌ Error: ${error.detail || res.statusText}</div>`;
+          }
+        } catch (error) {
+          document.getElementById("summariesOut").innerHTML = `<div class="status-message error">❌ Network Error: ${error.message}</div>`;
+        }
+      }
+
+      function startAutoRefresh() {
+        if (autoRefreshInterval) return;
+        autoRefreshInterval = setInterval(loadSummaries, 30000);
+        loadSummaries();
+      }
+
+      function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+      }
+
+      function toggleAutoRefresh() {
+        if (autoRefreshInterval) {
+          stopAutoRefresh();
+          document.getElementById("summariesOut").innerHTML = '<div class="status-message info">Auto-refresh stopped</div>';
+        } else {
+          startAutoRefresh();
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', async () => {
+        const connected = await checkServerConnection();
+        if (connected) {
+          loadMeetings();
+        }
+      });
+    </script>
+  </body>
+</html>
